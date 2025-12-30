@@ -9,7 +9,7 @@
     <!-- Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
     
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
@@ -33,6 +33,9 @@
                         'float': 'float 6s ease-in-out infinite',
                         'float-delayed': 'float 6s ease-in-out 3s infinite',
                         'pulse-slow': 'pulse 4s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+                        'lightning-flash': 'lightningFlash 3s ease-in-out infinite',
+                        'typing': 'typing 3.5s steps(40, end)',
+                        'blink': 'blink 1s step-end infinite',
                     },
                     keyframes: {
                         fadeIn: {
@@ -46,6 +49,19 @@
                         float: {
                             '0%, 100%': { transform: 'translateY(0) rotate(0deg)' },
                             '50%': { transform: 'translateY(-20px) rotate(5deg)' },
+                        },
+                        lightningFlash: {
+                            '0%, 90%, 100%': { opacity: '1', filter: 'drop-shadow(0 0 0 transparent)' },
+                            '93%': { opacity: '1', filter: 'drop-shadow(0 0 20px #f59e0b) drop-shadow(0 0 40px #f97316)' },
+                            '96%': { opacity: '0.6', filter: 'drop-shadow(0 0 5px #f59e0b)' },
+                        },
+                        typing: {
+                            'from': { width: '0' },
+                            'to': { width: '100%' },
+                        },
+                        blink: {
+                            'from, to': { borderColor: 'transparent' },
+                            '50%': { borderColor: '#f59e0b' },
                         },
                     },
                 },
@@ -143,6 +159,53 @@
         .mobile-menu.open {
             transform: translateX(0);
         }
+        
+        /* Speed lines canvas */
+        #speed-lines {
+            position: absolute;
+            inset: 0;
+            pointer-events: none;
+            z-index: 1;
+        }
+        
+        /* Performance badge */
+        .perf-badge {
+            backdrop-filter: blur(8px);
+            animation: fadeIn 0.5s ease-out 0.5s both;
+        }
+        
+        /* Terminal styles */
+        .terminal {
+            font-family: 'JetBrains Mono', 'Fira Code', 'SF Mono', Consolas, monospace;
+            background: linear-gradient(180deg, rgba(30, 41, 59, 0.95) 0%, rgba(15, 23, 42, 0.98) 100%);
+            border: 1px solid rgba(71, 85, 105, 0.5);
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(255, 255, 255, 0.05) inset;
+        }
+        
+        .terminal-line {
+            opacity: 0;
+            animation: fadeInUp 0.3s ease-out forwards;
+        }
+        
+        .terminal-cursor {
+            display: inline-block;
+            width: 8px;
+            height: 18px;
+            background: #f59e0b;
+            animation: blink 1s step-end infinite;
+            vertical-align: middle;
+            margin-left: 2px;
+        }
+        
+        /* Animated logo */
+        .logo-lightning {
+            animation: lightningFlash 4s ease-in-out infinite;
+        }
+        
+        .logo-lightning:hover {
+            animation: none;
+            filter: drop-shadow(0 0 20px #f59e0b) drop-shadow(0 0 40px #f97316);
+        }
     </style>
 </head>
 <body class="bg-dark-900 text-slate-50 font-sans antialiased">
@@ -153,7 +216,7 @@
             <div class="flex items-center justify-between h-20">
                 <!-- Logo -->
                 <a href="#" class="flex items-center gap-2 group">
-                    <svg class="w-8 h-8 text-amber-500 group-hover:text-orange-500 transition-colors" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <svg class="w-8 h-8 text-amber-500 logo-lightning transition-all duration-300" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z" stroke-linecap="round" stroke-linejoin="round"/>
                     </svg>
                     <span class="text-xl font-bold">Velox Lab</span>
@@ -218,10 +281,23 @@
     </header>
     
     <!-- Hero Section -->
-    <section class="relative min-h-screen flex items-center justify-center hero-bg grid-pattern overflow-hidden">
+    <section id="hero" class="relative min-h-screen flex items-center justify-center hero-bg grid-pattern overflow-hidden">
+        <!-- Speed Lines Canvas -->
+        <canvas id="speed-lines"></canvas>
+        
         <!-- Floating Elements -->
         <div class="absolute top-1/4 left-10 w-72 h-72 bg-amber-500/10 rounded-full blur-3xl animate-float"></div>
         <div class="absolute bottom-1/4 right-10 w-96 h-96 bg-orange-500/10 rounded-full blur-3xl animate-float-delayed"></div>
+        
+        <!-- Performance Badge -->
+        <div class="perf-badge absolute top-24 right-4 sm:right-8 z-20 flex items-center gap-2 px-3 py-1.5 bg-slate-800/70 border border-slate-700/50 rounded-full text-xs sm:text-sm">
+            <svg class="w-4 h-4 text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/>
+            </svg>
+            <span class="text-slate-400">Loaded in</span>
+            <span id="load-time" class="font-mono text-amber-500 font-medium">0.00</span>
+            <span class="text-slate-400">s</span>
+        </div>
         
         <div class="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-32 text-center">
             <div class="animate-fade-in-up" style="animation-delay: 0.1s;">
@@ -251,6 +327,21 @@
                 <a href="#contact" class="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-8 py-4 bg-slate-800 border border-slate-700 text-white font-semibold rounded-xl hover:bg-slate-700 hover:border-slate-600 transition-all">
                     Get in Touch
                 </a>
+            </div>
+            
+            <!-- Interactive Terminal -->
+            <div class="mt-16 animate-fade-in-up hidden sm:block" style="animation-delay: 0.6s;">
+                <div class="terminal max-w-lg mx-auto rounded-xl overflow-hidden">
+                    <div class="flex items-center gap-2 px-4 py-3 bg-slate-800/50 border-b border-slate-700/50">
+                        <div class="w-3 h-3 rounded-full bg-red-500"></div>
+                        <div class="w-3 h-3 rounded-full bg-yellow-500"></div>
+                        <div class="w-3 h-3 rounded-full bg-green-500"></div>
+                        <span class="ml-2 text-xs text-slate-500 font-mono">velox-cli</span>
+                    </div>
+                    <div class="p-4 text-left text-sm" id="terminal-output">
+                        <!-- Terminal lines will be added by JS -->
+                    </div>
+                </div>
             </div>
         </div>
         
@@ -644,7 +735,207 @@
     
     <!-- JavaScript -->
     <script>
-        // Header background on scroll
+        // ============================================
+        // PERFORMANCE COUNTER
+        // ============================================
+        window.addEventListener('load', () => {
+            const loadTimeEl = document.getElementById('load-time');
+            if (loadTimeEl && window.performance) {
+                const timing = performance.timing;
+                const loadTime = (timing.loadEventEnd - timing.navigationStart) / 1000;
+                // Animate the counter
+                let current = 0;
+                const target = Math.min(loadTime, 2); // Cap at 2s for display
+                const duration = 1000;
+                const startTime = Date.now();
+                
+                function updateCounter() {
+                    const elapsed = Date.now() - startTime;
+                    const progress = Math.min(elapsed / duration, 1);
+                    current = (target * progress).toFixed(2);
+                    loadTimeEl.textContent = current;
+                    
+                    if (progress < 1) {
+                        requestAnimationFrame(updateCounter);
+                    } else {
+                        loadTimeEl.textContent = target.toFixed(2);
+                    }
+                }
+                
+                setTimeout(updateCounter, 100);
+            }
+        });
+        
+        // ============================================
+        // SPEED LINES CANVAS
+        // ============================================
+        const canvas = document.getElementById('speed-lines');
+        const ctx = canvas.getContext('2d');
+        let mouseX = window.innerWidth / 2;
+        let mouseY = window.innerHeight / 2;
+        let lines = [];
+        
+        function resizeCanvas() {
+            const hero = document.getElementById('hero');
+            canvas.width = hero.offsetWidth;
+            canvas.height = hero.offsetHeight;
+        }
+        
+        class SpeedLine {
+            constructor() {
+                this.reset();
+            }
+            
+            reset() {
+                this.x = Math.random() * canvas.width;
+                this.y = Math.random() * canvas.height;
+                this.length = Math.random() * 80 + 20;
+                this.speed = Math.random() * 8 + 4;
+                this.opacity = Math.random() * 0.3 + 0.1;
+                this.angle = Math.atan2(mouseY - this.y, mouseX - this.x);
+            }
+            
+            update() {
+                // Lines move away from mouse position
+                this.angle = Math.atan2(this.y - mouseY, this.x - mouseX);
+                this.x += Math.cos(this.angle) * this.speed;
+                this.y += Math.sin(this.angle) * this.speed;
+                
+                // Reset if out of bounds
+                if (this.x < -50 || this.x > canvas.width + 50 || 
+                    this.y < -50 || this.y > canvas.height + 50) {
+                    this.reset();
+                    // Reset position near mouse
+                    const dist = Math.random() * 100 + 50;
+                    const angle = Math.random() * Math.PI * 2;
+                    this.x = mouseX + Math.cos(angle) * dist;
+                    this.y = mouseY + Math.sin(angle) * dist;
+                }
+            }
+            
+            draw() {
+                ctx.beginPath();
+                ctx.moveTo(this.x, this.y);
+                ctx.lineTo(
+                    this.x + Math.cos(this.angle) * this.length,
+                    this.y + Math.sin(this.angle) * this.length
+                );
+                const gradient = ctx.createLinearGradient(
+                    this.x, this.y,
+                    this.x + Math.cos(this.angle) * this.length,
+                    this.y + Math.sin(this.angle) * this.length
+                );
+                gradient.addColorStop(0, `rgba(249, 115, 22, ${this.opacity})`);
+                gradient.addColorStop(1, 'rgba(249, 115, 22, 0)');
+                ctx.strokeStyle = gradient;
+                ctx.lineWidth = 1.5;
+                ctx.stroke();
+            }
+        }
+        
+        function initLines() {
+            lines = [];
+            const lineCount = Math.min(50, Math.floor(canvas.width / 30));
+            for (let i = 0; i < lineCount; i++) {
+                lines.push(new SpeedLine());
+            }
+        }
+        
+        function animateLines() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            
+            lines.forEach(line => {
+                line.update();
+                line.draw();
+            });
+            
+            requestAnimationFrame(animateLines);
+        }
+        
+        // Mouse tracking
+        document.addEventListener('mousemove', (e) => {
+            const hero = document.getElementById('hero');
+            const rect = hero.getBoundingClientRect();
+            mouseX = e.clientX - rect.left;
+            mouseY = e.clientY - rect.top;
+        });
+        
+        // Initialize
+        resizeCanvas();
+        initLines();
+        animateLines();
+        
+        window.addEventListener('resize', () => {
+            resizeCanvas();
+            initLines();
+        });
+        
+        // ============================================
+        // TERMINAL TYPING ANIMATION
+        // ============================================
+        const terminalOutput = document.getElementById('terminal-output');
+        const terminalLines = [
+            { text: '$ velox init new-project', type: 'command', delay: 500 },
+            { text: '⚡ Initializing Velox Lab project...', type: 'info', delay: 800 },
+            { text: '✓ Analyzing requirements', type: 'success', delay: 600 },
+            { text: '✓ Assembling dev team', type: 'success', delay: 500 },
+            { text: '✓ Setting up infrastructure', type: 'success', delay: 700 },
+            { text: '✓ Deploying at edge', type: 'success', delay: 500 },
+            { text: '', type: 'blank', delay: 300 },
+            { text: '🚀 Your product is live!', type: 'final', delay: 0 },
+        ];
+        
+        async function typeTerminal() {
+            if (!terminalOutput) return;
+            
+            for (const line of terminalLines) {
+                await new Promise(resolve => setTimeout(resolve, line.delay));
+                
+                const lineEl = document.createElement('div');
+                lineEl.className = 'terminal-line font-mono';
+                
+                if (line.type === 'command') {
+                    lineEl.innerHTML = `<span class="text-slate-500">$</span> <span class="text-amber-500">${line.text.slice(2)}</span>`;
+                } else if (line.type === 'info') {
+                    lineEl.innerHTML = `<span class="text-amber-400">${line.text}</span>`;
+                } else if (line.type === 'success') {
+                    lineEl.innerHTML = `<span class="text-green-400">${line.text}</span>`;
+                } else if (line.type === 'final') {
+                    lineEl.innerHTML = `<span class="text-amber-500 font-semibold">${line.text}</span>`;
+                } else {
+                    lineEl.innerHTML = '&nbsp;';
+                }
+                
+                lineEl.style.animationDelay = '0s';
+                terminalOutput.appendChild(lineEl);
+                
+                // Scroll to bottom
+                terminalOutput.scrollTop = terminalOutput.scrollHeight;
+            }
+            
+            // Add blinking cursor at end
+            const cursorEl = document.createElement('span');
+            cursorEl.className = 'terminal-cursor';
+            terminalOutput.lastChild.appendChild(cursorEl);
+        }
+        
+        // Start terminal animation when in view
+        const terminalObserver = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    typeTerminal();
+                    terminalObserver.unobserve(entry.target);
+                }
+            });
+        }, { threshold: 0.5 });
+        
+        if (terminalOutput) {
+            terminalObserver.observe(terminalOutput.parentElement);
+        }
+        
+        // ============================================
+        // HEADER SCROLL EFFECT
+        // ============================================
         const header = document.getElementById('header');
         window.addEventListener('scroll', () => {
             if (window.scrollY > 50) {
@@ -654,7 +945,9 @@
             }
         });
         
-        // Mobile menu
+        // ============================================
+        // MOBILE MENU
+        // ============================================
         const mobileMenuBtn = document.getElementById('mobile-menu-btn');
         const mobileMenuClose = document.getElementById('mobile-menu-close');
         const mobileMenu = document.getElementById('mobile-menu');
@@ -674,7 +967,9 @@
             });
         });
         
-        // Fade in on scroll
+        // ============================================
+        // FADE IN ON SCROLL
+        // ============================================
         const fadeElements = document.querySelectorAll('.fade-section');
         
         const fadeObserver = new IntersectionObserver((entries) => {
